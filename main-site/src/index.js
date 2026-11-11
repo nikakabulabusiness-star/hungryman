@@ -105,7 +105,10 @@ async function handle(req,env,ctx){const u=new URL(req.url),p=u.pathname.replace
  if(p==='/api/admin/mail-sync'&&req.method==='POST'){await rate(req,env,'mail-sync',1,45);return syncMail(env)}
  if(p.startsWith('/api/'))return reply({error:'მოთხოვნა ვერ მოიძებნა.'},404);
  if(!['GET','HEAD'].includes(req.method))return reply({error:'მეთოდი დაუშვებელია.'},405);
- return env.ASSETS.fetch(req);
+ const asset=await env.ASSETS.fetch(req);
+ // Images/icons under /assets/ are not content-hashed, so cache for a day and revalidate in the background for a week.
+ if(p.startsWith('/assets/')&&(asset.ok||asset.status===304)){const headers=new Headers(asset.headers);headers.set('Cache-Control','public, max-age=86400, stale-while-revalidate=604800');return new Response(asset.body,{status:asset.status,headers})}
+ return asset;
 }
 function decode64(v){try{return new TextDecoder().decode(Uint8Array.from(atob(v.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)))}catch{return ''}}
 function plainBody(p){if(p.mimeType==='text/plain'&&p.body?.data)return decode64(p.body.data);return (p.parts||[]).map(plainBody).filter(Boolean).join('\n')}

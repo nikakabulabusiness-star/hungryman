@@ -221,5 +221,13 @@
     "challenge": "Previously approved generated image exec-fa28010f-ed45-41b6-9f81-da087b8a50ad.png, side flag logos removed per request",
     "adventure": "User supplied 4c3acf45-59c2-4fd5-b422-8573f311d166.png, two presenters",
     "pricing": "New accessories have no invented price; existing concept prices preserved"
+  },
+  "derived_web_sizes": {
+    "note": "Resized web copies generated 2026-11-11 for page weight; originals kept unchanged and still used as the large srcset candidate.",
+    "hungryman-logo-360.webp / hungryman-logo-720.webp": "Downscaled from hungryman-logo.png (alpha preserved, aspect 2048:1881).",
+    "favicon.ico / favicon-48.png / apple-touch-icon.png": "Logo centred on a square canvas (apple-touch-icon on #020d17 background).",
+    "video-<id>-640.webp": "640x360 downscales of each video-<id>.jpg YouTube thumbnail.",
+    "video-n9zGD3o4Zag.webp": "Regenerated from video-n9zGD3o4Zag.jpg; the previous file was 0 bytes.",
+    "sponsor-challenge-960.webp / sponsor-adventure-960.webp": "960px-wide downscales of the approved sponsor images."
   }
 }
