@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {createHmac} from 'node:crypto';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+const exports={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/call-ice.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,crypto,TextEncoder,btoa});
+const {callIce}=exports,secret='test-shared-secret-with-at-least-32-characters',session='00000000-0000-4000-8000-000000000000';
+assert.equal((await callIce({},session)).relayAvailable,false);
+const result=await callIce({WORK_TURN_URLS:'turn:relay.example.test:3478?transport=udp,turns:relay.example.test:443?transport=tcp',WORK_TURN_SECRET:secret},session,1700000000000);
+assert.equal(result.relayAvailable,true);
+const relay=result.iceServers[1];
+assert.equal(relay.username,'1700014700:'+session);
+assert.equal(relay.credential,createHmac('sha1',secret).update(relay.username).digest('base64'));
+assert.ok(!JSON.stringify(result).includes(secret));
+for(const env of [{WORK_TURN_URLS:'https://example.test',WORK_TURN_SECRET:secret},{WORK_TURN_URLS:'turn:relay.example.test',WORK_TURN_SECRET:'short'},{WORK_TURN_SECRET:secret}])await assert.rejects(callIce(env,session));
+console.log('PASS: temporary TURN HMAC credentials, bounded expiry, no secret exposure, invalid relay configuration fails closed.');

@@ -1,0 +1,6 @@
+const KEY='hungryman-application-draft-v2-';
+const MAX_AGE=7*24*60*60*1000;
+export type Draft={answers:Record<string,string>;requestId:string;scroll:number;fileName:string;step?:number;consent?:boolean;time:number};
+export function readDraft(storage:Pick<Storage,'getItem'|'removeItem'>,role:string):Draft|null{try{const raw=storage.getItem(KEY+role);if(!raw)return null;const d=JSON.parse(raw);if(!d||typeof d.time!=='number'||Date.now()-d.time>MAX_AGE||typeof d.requestId!=='string'||!d.answers||typeof d.answers!=='object'||Array.isArray(d.answers)){storage.removeItem(KEY+role);return null;}const answers:Record<string,string>={};for(const [k,v] of Object.entries(d.answers))if(typeof v==='string'&&v.length<=5000)answers[k]=v;return {answers,requestId:d.requestId,scroll:Math.max(0,Number(d.scroll)||0),fileName:typeof d.fileName==='string'?d.fileName:'',step:Math.max(0,Number(d.step)||0),consent:!!d.consent,time:d.time};}catch{return null;}}
+export function saveDraft(storage:Pick<Storage,'setItem'>,draft:Omit<Draft,'time'>,role:string){try{storage.setItem(KEY+role,JSON.stringify({...draft,time:Date.now()}));return true;}catch{return false;}}
+export function clearDraft(storage:Pick<Storage,'removeItem'>,role:string){try{storage.removeItem(KEY+role);}catch{}}

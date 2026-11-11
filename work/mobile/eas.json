@@ -1,0 +1,47 @@
+{
+  "cli": {
+    "version": ">=18.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "channel": "preview"
+    },
+    "simulator": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      },
+      "channel": "simulator"
+    },
+    "ios-free-unsigned": {
+      "distribution": "internal",
+      "environment": "preview",
+      "withoutCredentials": true,
+      "ios": {
+        "simulator": false,
+        "config": "ios-free-unsigned.yml",
+        "buildConfiguration": "Release",
+        "applicationArchivePath": "build/HungrymanWork-unsigned.ipa"
+      },
+      "channel": "ios-free-unsigned"
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

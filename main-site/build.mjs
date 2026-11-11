@@ -1,0 +1,12 @@
+import { cpSync,mkdirSync,rmSync } from 'node:fs';
+await import('./generate-pages.mjs');
+rmSync('dist',{recursive:true,force:true});
+mkdirSync('dist/server',{recursive:true});
+cpSync('public','dist/client',{recursive:true});
+cpSync('src','dist/server',{recursive:true});
+cpSync('public/content.js','dist/server/content.js');
+cpSync('public/analytics.js','dist/server/analytics.js');
+mkdirSync('dist/.openai',{recursive:true});
+cpSync('.openai/hosting.json','dist/.openai/hosting.json');
+cpSync('drizzle','dist/.openai/drizzle',{recursive:true});
+console.log('Built Worker, assets and migrations.');

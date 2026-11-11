@@ -1,0 +1,56 @@
+/* Cabinet density is scoped: never zoom the page or shrink touch targets. */
+main.cabinet-home{width:100%;max-width:1320px;padding:0 28px 64px;box-sizing:border-box}
+.cabinet-home .staff-hero{padding:24px 0 20px}
+.cabinet-home .staff-hero h1{font-size:28px;line-height:1.35}
+.cabinet-home .staff-hero .eyebrow{font-size:11px}
+.cabinet-home .staff-hero .role-chip{font-size:11px;padding:6px 11px;margin-top:8px}
+.cabinet-home .staff-grid{grid-template-columns:240px minmax(0,1fr);gap:18px;align-items:start}
+.cabinet-home .staff-grid>.staff-calendar-wrap{grid-column:auto}
+.cabinet-home .staff-grid>.work-stack{gap:12px}
+.cabinet-home .staff-calendar-card{padding:20px}
+.cabinet-home .calendar-head{margin-bottom:16px}
+.cabinet-home .calendar-head h2{font-size:22px}
+.cabinet-home .calendar-day{min-height:80px;padding:7px}
+.cabinet-home .calendar-legend{gap:10px 14px;font-size:11px}
+.cabinet-home .profile-summary{grid-template-columns:52px minmax(0,1fr) 30px;gap:10px}
+.cabinet-home .profile-summary .profile-avatar{width:52px;height:52px;border-radius:15px}
+.cabinet-home .profile-summary .profile-avatar img{border-radius:15px}
+.cabinet-home .profile-identity h2{font-size:14px;line-height:1.4}
+.cabinet-home .profile-edit-toggle{width:30px;height:30px}
+.cabinet-home .staff-grid>.work-stack .work-panel{padding:14px;border-radius:18px}
+.cabinet-home .staff-grid>.work-stack .work-panel summary{font-size:13px;min-height:40px}
+.cabinet-home .cabinet-leave-request h2{font-size:14px;line-height:1.5;margin:0;padding:0;border:0}
+.cabinet-home .cabinet-leave-request p{margin:0;font-size:11px}
+.cabinet-home .cabinet-leave-request .action{width:100%;font-size:12px;min-height:44px}
+.cabinet-home .cabinet-leave-request .cabinet-calendar-link{font-size:11px}
+.cabinet-home>.staff-hero,.cabinet-home>.staff-grid{animation:cabinet-enter 220ms cubic-bezier(.2,.7,.2,1) both}
+.cabinet-home>.staff-grid{animation-delay:35ms}
+@keyframes cabinet-enter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@media(min-width:1024px) and (max-width:1440px){
+ main.cabinet-home{max-width:1200px;padding:0 24px 48px}
+ .cabinet-home .staff-brandbar{min-height:74px;gap:16px}
+ .cabinet-home .staff-brandbar nav{gap:12px}
+ .cabinet-home .staff-brandbar .brand{font-size:23px}
+ .cabinet-home .staff-hero{padding:18px 0 16px}
+ .cabinet-home .staff-hero h1{font-size:25px}
+ .cabinet-home .staff-grid{grid-template-columns:220px minmax(0,1fr);gap:16px}
+ .cabinet-home .staff-calendar-card{padding:16px}
+ .cabinet-home .calendar-day{min-height:68px;padding:6px}
+ .cabinet-home .calendar-head h2{font-size:20px}
+ .cabinet-home .profile-identity h2{font-size:13px}
+}
+@media(min-width:761px) and (max-width:1023px){
+ .cabinet-home .staff-grid{grid-template-columns:215px minmax(0,1fr)}
+ .cabinet-home .staff-calendar-card{padding:12px}
+ .cabinet-home .calendar-day{min-height:68px;padding:4px}
+}
+@media(max-width:760px){
+ main.cabinet-home{padding:0 14px 44px}
+ .cabinet-home .staff-grid{grid-template-columns:minmax(0,1fr)}
+ .cabinet-home .staff-hero{padding:18px 0 16px}
+ .cabinet-home .staff-hero h1{font-size:24px}
+ .cabinet-home .staff-calendar-card{padding:14px 9px}
+ .cabinet-home .calendar-day{min-height:72px;padding:5px 3px}
+ .cabinet-home .calendar-head h2{font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){.cabinet-home>.staff-hero,.cabinet-home>.staff-grid{animation:none}}

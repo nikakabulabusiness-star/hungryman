@@ -1,0 +1,21 @@
+// Native mutation boundaries and immutable shoot export regression checks.
+const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
+require.extensions['.ts']=(module,filename)=>module._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,filename);
+const {emptyCallSheet,emptyWorkContent,emptyTechnical,workBoards}=require('../src/lib/work-model.ts');
+const {replaceWorkRows,workSaveMutation,workContactPayload,workLocalDateTime,frozenWorkShoot}=require('../src/lib/work-editor.ts');
+const sheet={...emptyCallSheet(),days:[{id:'d1',locationId:'l1'},{id:'d2',locationId:'l2'}],locations:[{id:'l1'},{id:'l2'}],crew:[{id:'c1',dayIds:['d1','d2']},{id:'c2',dayIds:['d2']}],scenes:[{id:'s',dayId:'d1',locationId:'l1',crewIds:['c1','c2']}]};
+const withoutDay=replaceWorkRows(sheet,'days',[sheet.days[1]]);
+assert.deepEqual(withoutDay.crew[0].dayIds,['d2']);assert.equal(withoutDay.scenes[0].dayId,'');assert.equal(sheet.scenes[0].dayId,'d1');
+const withoutPlace=replaceWorkRows(withoutDay,'locations',[sheet.locations[1]]);assert.equal(withoutPlace.scenes[0].locationId,'');
+const withoutCrew=replaceWorkRows(sheet,'crew',[sheet.crew[1]]);assert.deepEqual(withoutCrew.scenes[0].crewIds,['c2']);
+assert.equal(workLocalDateTime('2026-10-27 09:15'),'2026-10-27T09:15');assert.equal(workLocalDateTime('2026-10-27T09:15Z'),'2026-10-27T09:15Z');
+const input={company:'A',category:'B',firstName:'C',lastName:'D',position:'E',phone:'F',email:'G',notes:'H',created:1,updated:2,createdBy:'server',updatedBy:'server',version:3,id:'c'};
+assert.deepEqual(Object.keys(workContactPayload(input)).sort(),['company','category','firstName','lastName','position','phone','email','notes'].sort());
+const video={id:'video',title:'Approved title',kind:'video',entryBoard:'story',stages:{story:'approved',production:'planning',social:null,technical:'approved',editing:null},content:{...emptyWorkContent(),script:'Approved script'},callSheet:emptyCallSheet(),technical:emptyTechnical(),approvedTechnical:null,totals:{currency:'GEL',base:10000,technicalApproved:0,technicalPending:0,grandTotal:10000,categories:[]},version:4,created:1,updated:100,createdBy:'u',permissions:{editBoards:['production'],approve:true,remove:false},shoots:[],reviewNotes:{}};
+assert.deepEqual(Object.keys(workSaveMutation(video,'technical')).sort(),['action','board','technical','version']);assert.ok(!('callSheet' in workSaveMutation(video,'editing')));assert.equal(workSaveMutation(video,'production').version,4);
+const detail={video,history:[{version:4,created:100},{version:5,created:101}],snapshots:[{data:{content:{script:'Later draft leak'}}}],meta:{boards:workBoards,people:[{email:'unrelated@example.test'}],assignable:[],unlinkedShoots:[],editBoards:[],canApprove:true,canContacts:true}};
+const shoot={id:'shoot',title:'Shoot',work_video_id:'video',work_day_id:'d',shoot_date:'2026-10-27',status:'planned',updated:101,work_snapshot:JSON.stringify({...video,videoId:'video',version:4,approvedAt:100,approvedBy:'Founder'})};
+const frozen=frozenWorkShoot({...detail,video:{...video,title:'Unapproved title',content:{...video.content,script:'Later draft'}}},shoot);
+assert.equal(frozen.video.title,'Approved title');assert.equal(frozen.video.content.script,'Approved script');assert.equal(frozen.video.stages.production,'scheduled');assert.equal(frozen.video.stages.editing,null);assert.equal(frozen.history.length,1);assert.equal(frozen.snapshots.length,1);assert.ok(!JSON.stringify(frozen).includes('Later draft'));assert.equal(frozen.meta.people.length,0);assert.equal(frozen.video.permissions.approve,false);
+assert.equal(frozenWorkShoot(detail,{...shoot,work_video_id:'other'}),null);assert.equal(frozenWorkShoot(detail,{...shoot,work_snapshot:'{}'}),null);
+console.log('PASS: Native board mutation revisions, contact field allowlist, removed row references, datetime input and immutable shoot archive privacy.');

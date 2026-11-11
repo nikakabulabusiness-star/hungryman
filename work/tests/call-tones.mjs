@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const source=ts.transpileModule(fs.readFileSync('mobile/src/lib/use-call-tone.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+let cleanup,listener,timer,player,resolveSeek;
+const app={currentState:'active',addEventListener(_,fn){listener=fn;return {remove(){listener=null}}}};
+const exports={};
+vm.runInNewContext(source,{exports,require(name){if(name==='react')return {useEffect:fn=>cleanup=fn()};if(name==='react-native')return {AppState:app};if(name==='expo-audio')return {createAudioPlayer:()=>player={plays:0,pauses:0,removed:false,pause(){this.pauses++},play(){this.plays++},seekTo:()=>new Promise(r=>resolveSeek=r),remove(){this.removed=true}}};return name},setTimeout(fn){timer=fn;return 1},clearTimeout(){}});
+const settle=async()=>{for(let i=0;i<8;i++)await Promise.resolve()};
+exports.useCallTone('incoming');assert.equal(player.loop,true);resolveSeek();await settle();assert.equal(player.plays,1);
+app.currentState='background';listener('background');const plays=player.plays;assert.ok(player.pauses>0);
+app.currentState='active';listener('active');cleanup();resolveSeek();await settle();assert.equal(player.plays,plays,'late seek after answering/unmount must never restart ringtone');assert.equal(player.removed,true);
+exports.useCallTone('outgoing');resolveSeek();await settle();timer();const previous=player.plays;listener('active');await settle();assert.equal(player.plays,previous,'unanswered call stops ringing at deadline');cleanup();
+console.log('PASS native tone lifecycle, background pause, late async cancellation, release on answer and bounded ringing.');

@@ -1,0 +1,5 @@
+00:00 +0: loading /workspace/scratch/8510f4d3e208/hungryman-work/test/preview_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: preview opens existing screens and sends isolated demo message
+00:03 +1: (tearDownAll)
+00:03 +1: All tests passed!

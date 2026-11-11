@@ -1,0 +1,8 @@
+import {getSessionUser} from '@/lib/staff-auth';
+import {DEVELOPER_EMAIL,PREVIEW_COOKIE,developerSessionTag,getPreviewRole} from '@/lib/admin';
+import {getAssignablePositions} from '@/lib/positions';
+import {sameOrigin} from '@/lib/visitor';
+import {storage} from '@/lib/storage';
+export const dynamic='force-dynamic';
+export async function GET(){const user=await getSessionUser();if(user?.email!==DEVELOPER_EMAIL)return Response.json({error:'წვდომა შეზღუდულია.'},{status:403});return Response.json({roles:['Developer','Owner',...await getAssignablePositions()],previewRole:await getPreviewRole(user)},{headers:{'Cache-Control':'private, no-store'}})}
+export async function POST(req:Request){const user=await getSessionUser();if(user?.email!==DEVELOPER_EMAIL||!sameOrigin(req))return Response.json({error:'წვდომა შეზღუდულია.'},{status:403});const role=(await req.json().catch(()=>null) as {role?:string}|null)?.role||'';const mobile=req.headers.has('authorization');if(!(mobile?['Developer','Owner',...await getAssignablePositions()]:['Developer','Senior Editor']).includes(role))return Response.json({error:'არასწორი როლი.'},{status:400});const tag=mobile?null:await developerSessionTag();await storage().DB.prepare('INSERT INTO workspace_audit (id,actor,action,target,details,created) VALUES (?,?,?,?,?,?)').bind(crypto.randomUUID(),user.email,'developer.preview',user.email,JSON.stringify({role}),Date.now()).run();return Response.json({ok:true,role},{headers:{...(tag?{'Set-Cookie':`${PREVIEW_COOKIE}=${role==='Developer'?tag:''}; Path=/; HttpOnly; Secure; SameSite=Lax${role==='Developer'?'':'; Max-Age=0'}`}:{}),'Cache-Control':'no-store'}})}

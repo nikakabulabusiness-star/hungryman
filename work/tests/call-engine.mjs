@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const html=fs.readFileSync('public/work/call.html','utf8'),script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+assert.ok(!/meet\.jit|window\.open|location\.href|iframe/.test(html),'Call must stay in the application');
+class Element{constructor(tag){this.tag=tag;this.children=[];this.style={};this.classList={toggle(){},remove(){}};this.textContent='';this.hidden=false}append(...items){for(const item of items){item.parent=this;this.children.push(item)}}remove(){if(this.parent)this.parent.children=this.parent.children.filter(v=>v!==this)}replaceChildren(){this.children=[]}querySelector(tag){return this.children.find(v=>v.tag===tag)}setAttribute(){}addEventListener(){}removeEventListener(){}play(){return Promise.resolve()}}
+const elements=new Map(['status','grid','join','controls','mic','camera','flip','hang','notice'].map(id=>[id,new Element('div')]));
+const document={getElementById:id=>elements.get(id)||elements.get('grid').children.find(e=>e.id===id),createElement:tag=>new Element(tag),addEventListener(){}};
+function track(kind){return {kind,enabled:true,stopped:false,stop(){this.stopped=true}}}
+const audio=track('audio'),video=track('video'),stream={tracks:[audio,video],getTracks(){return this.tracks},getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')},getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')},removeTrack(t){this.tracks=this.tracks.filter(v=>v!==t)},addTrack(t){this.tracks.push(t)}};
+const connections=[],calls=[],timers=[];let seq=0,poll={ended:false,peers:[{userId:'peer',sessionId:'ffffffff-ffff-4fff-8fff-ffffffffffff',name:'Peer'}],signals:[]},deny=false;
+class PC{constructor(){this.signalingState='stable';this.senders=[];this.candidates=[];connections.push(this)}addTrack(track){const sender={track,getParameters:()=>({}),setParameters:async()=>{},replaceTrack:async t=>sender.track=t};this.senders.push(sender);return sender}addTransceiver(value,options){this.videoOptions=options;return {sender:this.addTrack(typeof value==='string'?null:value)}}getSenders(){return this.senders}async createOffer(){return {type:'offer',sdp:'offer'}}async setLocalDescription(sdp){this.signalingState=sdp.type==='offer'?'have-local-offer':'stable'}async setRemoteDescription(sdp){this.remoteDescription=sdp;this.signalingState=sdp.type==='offer'?'have-remote-offer':'stable'}async createAnswer(){return {type:'answer',sdp:'answer'}}async addIceCandidate(c){this.candidates.push(c)}close(){this.closed=true}}
+const window={addEventListener(){},ReactNativeWebView:{postMessage(json){const m=JSON.parse(json);calls.push(m);if(!m.rpc)return;const result=m.action==='join'?{iceServers:[],mode:'video'}:m.action==='poll'?structuredClone(poll):{ok:true};queueMicrotask(()=>window.__hmReply(m.rpc,result))}}};
+vm.runInNewContext(script,{window,document,navigator:{mediaDevices:{getUserMedia:async()=>{if(deny)throw Object.assign(Error('denied'),{name:'NotAllowedError'});return stream}}},RTCPeerConnection:PC,MediaStream:class {},crypto,setTimeout(fn,ms){const timer={fn,ms};timers.push(timer);return timer},clearTimeout(timer){if(timer)timer.cancelled=true},console});
+const settle=async()=>{for(let i=0;i<20;i++)await Promise.resolve()};
+window.__hmInit({sessionId:'00000000-0000-4000-8000-000000000000',mode:'video',name:'Team'});
+await elements.get('join').onclick();await settle();assert.equal(connections.length,1);assert.ok(calls.some(c=>c.action==='signal'&&c.args.payload.type==='offer'));
+const candidate={candidate:'fake-candidate'};poll.signals=[{seq:++seq,sender:'peer',payload:{type:'ice',candidate,sessionId:poll.peers[0].sessionId}},{seq:++seq,sender:'peer',payload:{type:'answer',sdp:'answer',sessionId:poll.peers[0].sessionId}}];
+await timers.filter(t=>t.ms===300&&!t.cancelled).at(-1).fn();await settle();assert.equal(connections[0].candidates.length,1,'ICE arriving before the answer must be queued');assert.equal(connections[0].remoteDescription.type,'answer');
+elements.get('mic').onclick();assert.equal(audio.enabled,false);elements.get('camera').onclick();assert.equal(video.enabled,false);
+window.__hmStop();await settle();assert.equal(audio.stopped,true);assert.equal(video.stopped,true);assert.equal(connections[0].closed,true);assert.equal(elements.get('grid').children.length,0);assert.ok(calls.some(c=>c.action==='leave'));
+deny=true;await elements.get('join').onclick();assert.match(elements.get('status').textContent,/დაუშვი/);assert.equal(elements.get('join').disabled,false,'Permission failure must allow retry');
+console.log('PASS: in-app WebRTC offer/answer, out-of-order ICE, mute/camera controls, background cleanup and permission retry (media mocked).');

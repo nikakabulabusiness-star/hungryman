@@ -1,0 +1,44 @@
+# EAS runs from mobile/ but packages from the repository root.
+# Send the native app and its three pure shared modules; exclude server source.
+/*
+# EAS checks directory names without a trailing slash before traversing them.
+!/mobile
+!/mobile/**
+!/lib
+/lib/*
+!/lib/site-controls.ts
+!/lib/permissions.ts
+!/lib/department-directory.ts
+
+# Generated projects, dependencies, caches, and local output.
+/mobile/node_modules
+/mobile/.expo
+/mobile/dist
+/mobile/dist-*
+/mobile/build
+/mobile/web-build
+/mobile/ios
+/mobile/android
+/mobile/ios-personal.local.json
+**/.git
+**/.kotlin
+**/.DS_Store
+**/*.tsbuildinfo
+**/expo-env.d.ts
+**/.metro-health-check*
+**/npm-debug.*
+**/yarn-debug.*
+**/yarn-error.*
+**/*.orig.*
+
+# Credentials and signing material are provided through EAS, never source upload.
+**/.env*
+**/credentials.json
+**/*.p8
+**/*.p12
+**/*.pem
+**/*.key
+**/*.jks
+**/*.mobileprovision
+
+/mobile/outputs

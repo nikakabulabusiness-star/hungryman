@@ -1,0 +1,20 @@
+build:
+  name: Hungryman Work iPhone app for personal signing
+  steps:
+    - eas/checkout
+    - eas/install_node_modules
+    - eas/prebuild
+    - run:
+        name: Install iOS native dependencies
+        working_directory: ios
+        command: pod install
+    - eas/configure_eas_update
+    - run:
+        name: Build unsigned iPhone release and package IPA
+        command: bash scripts/build-unsigned-ios.sh
+    - eas/upload_artifact:
+        name: Upload IPA for signing with a personal Apple account
+        inputs:
+          type: application-archive
+          # upload_artifact resolves paths from the repository root.
+          path: mobile/build/HungrymanWork-unsigned.ipa

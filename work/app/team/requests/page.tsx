@@ -1,0 +1,3 @@
+import {AttendanceRequests} from '@/components/work-notifications';
+import {hasPermission} from '@/lib/permissions';
+import {requireApprovedStaff} from '@/lib/staff-access';import {notFound} from 'next/navigation';import StaffHeader from '@/app/team/staff-header';import {Requests} from '@/components/cabinet-panel';export const dynamic='force-dynamic';export default async function Page(){const a=await requireApprovedStaff('/team/requests');if(!hasPermission(a,'cabinet.view'))notFound();return <main className="staff-shell"><StaffHeader access={a} active="team"/><h1>ჩემი მოთხოვნები</h1><Requests/>{a.features?.attendance!==false&&<AttendanceRequests review={false}/>}</main>}

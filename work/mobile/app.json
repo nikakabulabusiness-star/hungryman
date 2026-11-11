@@ -1,0 +1,104 @@
+{
+  "expo": {
+    "name": "Hungryman Work",
+    "slug": "hungryman-wrok",
+    "version": "0.3.18",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "scheme": "hungrymanwork",
+    "backgroundColor": "#061827",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ge.hungryman.work",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSCameraUsageDescription": "კამერა გამოიყენება მხოლოდ შენ მიერ დაწყებულ ვიდეოზარსა და ფოტოს გადაღებაში.",
+        "NSMicrophoneUsageDescription": "მიკროფონი გამოიყენება ხმოვანი შეტყობინებების ჩასაწერად და ზარებისთვის."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#061827",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "package": "ge.hungryman.work",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "პროფილის ფოტოს ასარჩევად საჭიროა ფოტოებზე წვდომა.",
+          "cameraPermission": "კამერა გამოიყენება მხოლოდ შენ მიერ დაწყებულ ვიდეოზარსა და ფოტოს გადაღებაში.",
+          "microphonePermission": "მიკროფონი საჭიროა აპში აუდიო და ვიდეოზარებისთვის."
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "შენი ნებართვით ლოკაცია გამოიყენება ოფისში დასწრებისა და ჩატში გაზიარებისთვის.",
+          "locationAlwaysAndWhenInUsePermission": "ფონური ლოკაციით ოფისში შესვლა და გასვლა აღირიცხება. ოფისის გარეთ მარშრუტები არ ინახება.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "attendance"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "მიკროფონი გამოიყენება ხმოვანი შეტყობინებების ჩასაწერად და ზარებისთვის.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "9e2f2ace-b709-4e31-b709-c3eae666194a"
+      }
+    },
+    "owner": "hungrymanworks-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9e2f2ace-b709-4e31-b709-c3eae666194a"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE `site_administrators` ADD `permissions_json` text;

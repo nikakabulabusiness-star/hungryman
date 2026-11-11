@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import gateway,{routeAllowed} from './worker/index.js';
+const origin='https://team.hungryman.ge',env={CAREERS_BRIDGE_SECRET:'test-secret'};let calls=0,last;
+globalThis.fetch=async(url,options)=>{calls++;last={url:String(url),options};return new Response('public',{headers:{'set-cookie':'private=bad'}})};
+for(const path of ['/admin','/team','/api/mobile/me','/api/presence','/api/applications/private','/api/cv/id','/api/chat/messages'])assert.equal(routeAllowed(path,'GET'),false,path);
+for(const role of ['writer','director','producer','editor','thumbnail','shorts'])assert.equal(routeAllowed('/apply/'+role,'GET'),true);
+assert.equal((await gateway.fetch(new Request(origin+'/api/events',{method:'POST',headers:{origin:'https://evil.test'}}),env)).status,403);assert.equal(calls,0);
+const result=await gateway.fetch(new Request(origin+'/',{headers:{cookie:'hm_staff_session=private',authorization:'Bearer private','oai-authenticated-user-id':'fake'}}),env);
+assert.equal(last.url,'https://hungryman-applications-test.hungryman.chatgpt.site/careers');assert.equal(result.headers.get('set-cookie'),null);assert.equal(last.options.headers.get('cookie'),null);assert.equal(last.options.headers.get('authorization'),null);assert.equal(last.options.headers.get('oai-authenticated-user-id'),null);
+const res=await gateway.fetch(new Request(origin+'/api/events',{method:'POST',headers:{origin,'content-type':'application/json','cf-connecting-ip':'192.0.2.1'},body:'{}'}),env);assert.equal(res.status,200);assert.equal(last.options.headers.get('x-hm-careers-key'),'test-secret');assert.equal(last.options.headers.get('x-hm-visitor-ip'),'192.0.2.1');
+assert.equal((await gateway.fetch(new Request(origin+'/api/admin/applications',{method:'POST',headers:{origin}}),env)).status,404);
+console.log('PASS: public route isolation, CSRF denial, all six forms, authenticated proxy, session/header stripping.');

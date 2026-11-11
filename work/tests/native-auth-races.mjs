@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+let saved=null,readGate=null,writeGate=null,deleteGate=null,responseStatus=200;const requests=[];
+const store={AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY:4,async getItemAsync(){const value=saved;if(readGate)await readGate;return value},async setItemAsync(_key,value){if(writeGate)await writeGate;saved=value},async deleteItemAsync(){if(deleteGate)await deleteGate;saved=null}};
+const exports={},code=ts.transpileModule(fs.readFileSync('mobile/src/lib/api.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+vm.runInNewContext(code,{exports,require:()=>store,AbortController,FormData,setTimeout,clearTimeout,encodeURIComponent,async fetch(url,options){requests.push({url,...options});return {ok:responseStatus===200,status:responseStatus,json:async()=>({})}}});
+await exports.setToken('account-a');let releaseRead;readGate=new Promise(resolve=>{releaseRead=resolve});const restoring=exports.restoreToken();await new Promise(resolve=>setImmediate(resolve));await exports.setToken(null);releaseRead();readGate=null;await restoring;await exports.api('/api/test');assert.equal(requests.at(-1).headers.Authorization,undefined,'a stale SecureStore read cannot restore a logged-out token');
+let releaseWrite;writeGate=new Promise(resolve=>{releaseWrite=resolve});const login=exports.setToken('account-a');await new Promise(resolve=>setImmediate(resolve));const logout=exports.setToken(null);releaseWrite();writeGate=null;await Promise.all([login,logout]);assert.equal(saved,null,'a delayed login write cannot survive queued logout');
+await exports.setToken('account-a');const cleanup=exports.sessionRequest();await exports.setToken('account-b');await cleanup('/api/mobile/push',{method:'DELETE'});assert.equal(requests.at(-1).headers.Authorization,'Bearer account-a');await exports.api('/api/test');assert.equal(requests.at(-1).headers.Authorization,'Bearer account-b');
+let expired=0;exports.onExpired(()=>expired++);responseStatus=401;let releaseDelete;deleteGate=new Promise(resolve=>{releaseDelete=resolve});const expiredRequest=exports.api('/api/test').catch(e=>e);await new Promise(resolve=>setImmediate(resolve));const nextLogin=exports.setToken('account-c');releaseDelete();deleteGate=null;await Promise.all([expiredRequest,nextLogin]);assert.equal(expired,0,'an old 401 callback cannot log out a new login while SecureStore deletes');assert.equal(saved,'account-c');
+console.log('PASS: native token restore/write logout races and account-bound cleanup requests.');

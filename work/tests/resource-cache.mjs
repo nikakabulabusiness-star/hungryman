@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+let requests=0,resolve,reject;
+const api=()=>{requests++;return new Promise((yes,no)=>{resolve=yes;reject=no})},exports={};
+const code=ts.transpileModule(fs.readFileSync('mobile/src/lib/resource-cache.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+vm.runInNewContext(code,{exports,require:name=>name==='./api'?{api,ApiError:class extends Error{}}:name==='./persistent-resources'?{clearPersistentResources(){},persistResource(){}}:name==='./resource-snapshot'?{snapshotKind(){return null}}:{},Date,Map,Set,Promise});
+const {resourceEntry,refreshResource,prefetchResource,setResource,clearResources,subscribeResource}=exports;
+let changes=0;const off=subscribeResource('/api/test',()=>changes++);
+const first=refreshResource('/api/test');const second=refreshResource('/api/test');assert.equal(requests,1);resolve({value:1});await Promise.all([first,second]);assert.equal(resourceEntry('/api/test').data.value,1);
+await prefetchResource('/api/test');assert.equal(requests,1);assert.equal(resourceEntry('/api/test').loading,false);
+const late=refreshResource('/api/test');clearResources();resolve({private:'old account'});await late;assert.equal(resourceEntry('/api/test').data,null);
+const failed=refreshResource('/api/test');reject(new Error('offline'));await failed;assert.equal(resourceEntry('/api/test').error,'offline');const retry=refreshResource('/api/test');resolve({value:2});await retry;assert.equal(resourceEntry('/api/test').data.value,2);
+setResource('/api/test',old=>({...old,value:3}));assert.equal(resourceEntry('/api/test').data.value,3);off();assert.ok(changes>=4);
+console.log('PASS: shared requests deduplicate, cached pages stay visible, account changes discard stale responses, failed fetches retry.');

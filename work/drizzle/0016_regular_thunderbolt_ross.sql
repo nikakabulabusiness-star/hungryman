@@ -1,0 +1,1 @@
+CREATE INDEX `staff_chat_author_created_idx` ON `staff_chat_messages` (`author_user_id`,`created`);

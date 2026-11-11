@@ -1,0 +1,66 @@
+[
+  {
+    "id": "appgprj_6aa595cba8fc8191b26fcd47aab9750a",
+    "title": "Hungryman Work — App Preview",
+    "url": "https://hungryman-work-preview.hungryman.chatgpt.site",
+    "version": 3,
+    "sha": "5056abea5d01dd624ee81bf5d1bdd21f889c90f0",
+    "version_id": "appgprj_6aa595cba8fc8191b26fcd47aab9750a~appgver_262ce02307748191b855de0f30780dd4",
+    "repo": "https://git.chatgpt-team.site/26e6580b-a925-4bf0-b79b-5473af25e79e/appgprj_6aa595cba8fc8191b26fcd47aab9750a.git",
+    "branch": "main",
+    "env": [],
+    "directory": "app-preview"
+  },
+  {
+    "id": "appgprj_6aa58be33b6c81919116fc1b728d1431",
+    "title": "Hungryman — ოფიციალური საიტი",
+    "url": "https://hungryman.ge",
+    "version": 15,
+    "sha": "eed40ca670fec526a6c2c2d6c64ba8f2dec1c163",
+    "version_id": "appgprj_6aa58be33b6c81919116fc1b728d1431~appgver_7228c1691f888191b2d0f62b3b48781f",
+    "repo": "https://git.chatgpt-team.site/26e6580b-a925-4bf0-b79b-5473af25e79e/appgprj_6aa58be33b6c81919116fc1b728d1431.git",
+    "branch": "main",
+    "env": [
+      "ADMIN_EMAIL",
+      "TRACKING_SECRET",
+      "WORK_INBOX_SECRET"
+    ],
+    "directory": "main-site"
+  },
+  {
+    "id": "appgprj_6aa4489123ec81919883bdd1f629f190",
+    "title": "Hungryman Work",
+    "url": "https://work.hungryman.ge",
+    "version": 78,
+    "sha": "2d54ade8c6ab8e3862cb1d9fd57f63596d55bc60",
+    "version_id": "appgprj_6aa4489123ec81919883bdd1f629f190~appgver_37e44c927668819180a749329f951110",
+    "repo": "https://git.chatgpt-team.site/26e6580b-a925-4bf0-b79b-5473af25e79e/appgprj_6aa4489123ec81919883bdd1f629f190.git",
+    "branch": "main",
+    "env": [
+      "ADMIN_DELETE_PASSWORD",
+      "CAREERS_BRIDGE_SECRET",
+      "WORK_AUTH_CODE_SECRET",
+      "WORK_INBOX_SECRET",
+      "WORK_NOTIFICATION_SCHEDULER_ENABLED",
+      "WORK_NOTIFICATION_SCHEDULER_OWNER_EMAIL",
+      "WORK_WEB_PUSH_PRIVATE_KEY",
+      "WORK_WEB_PUSH_PUBLIC_KEY",
+      "WORK_WEB_PUSH_SUBJECT"
+    ],
+    "directory": "work"
+  },
+  {
+    "id": "appgprj_6aa05d87321481918007161e33f3bf8a",
+    "title": "Hungryman — ვაკანსიები",
+    "url": "https://team.hungryman.ge",
+    "version": 9,
+    "sha": "dad7cf479b3f883f047e4dcb3a6bca46811b2ef6",
+    "version_id": "appgprj_6aa05d87321481918007161e33f3bf8a~appgver_486ac13739408191a0b6f0499894d669",
+    "repo": "https://git.chatgpt-team.site/26e6580b-a925-4bf0-b79b-5473af25e79e/appgprj_6aa05d87321481918007161e33f3bf8a.git",
+    "branch": "main",
+    "env": [
+      "CAREERS_BRIDGE_SECRET"
+    ],
+    "directory": "careers"
+  }
+]

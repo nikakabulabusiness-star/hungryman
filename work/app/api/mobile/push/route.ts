@@ -1,0 +1,6 @@
+import {getStaffAccess} from '@/lib/staff-access';
+import {sameOrigin} from '@/lib/visitor';
+import {storage} from '@/lib/storage';
+export const dynamic='force-dynamic';
+export async function POST(req:Request){const a=await getStaffAccess();if(!a?.isApproved||!sameOrigin(req))return Response.json({error:'წვდომა შეზღუდულია.'},{status:403});const {token}=await req.json() as {token:string};if(typeof token!=='string'||!/^(Expo|Exponent)PushToken\[[A-Za-z\d_-]{10,200}\]$/.test(token||''))return Response.json({error:'არასწორი შეტყობინების მისამართი.'},{status:400});const db=storage().DB;await db.prepare('INSERT INTO push_devices (token,user_id,updated) VALUES (?,?,?) ON CONFLICT(token) DO UPDATE SET user_id=excluded.user_id,updated=excluded.updated').bind(token,a.userId,Date.now()).run();await db.prepare('DELETE FROM push_devices WHERE user_id=? AND token NOT IN (SELECT token FROM push_devices WHERE user_id=? ORDER BY updated DESC LIMIT 5)').bind(a.userId,a.userId).run();return Response.json({ok:true})}
+export async function DELETE(req:Request){const a=await getStaffAccess();if(!a||!sameOrigin(req))return Response.json({error:'წვდომა შეზღუდულია.'},{status:403});const {token}=await req.json() as {token:string};await storage().DB.prepare('DELETE FROM push_devices WHERE token=? AND user_id=?').bind(token,a.userId).run();return Response.json({ok:true})}

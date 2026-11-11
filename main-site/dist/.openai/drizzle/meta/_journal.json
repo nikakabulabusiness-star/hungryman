@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789253242770,
+      "tag": "0000_wet_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789254496748,
+      "tag": "0001_talented_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793028982937,
+      "tag": "0002_reset_automatic_statistics",
+      "breakpoints": true
+    }
+  ]
+}

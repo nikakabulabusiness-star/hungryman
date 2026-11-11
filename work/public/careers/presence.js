@@ -1,0 +1,1 @@
+(()=>{const beat=()=>{if(document.visibilityState==='visible')fetch('/api/presence',{method:'POST',keepalive:true}).catch(()=>{})};beat();setInterval(beat,30000);document.addEventListener('visibilitychange',beat)})();
