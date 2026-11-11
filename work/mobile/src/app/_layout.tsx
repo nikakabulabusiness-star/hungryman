@@ -10,11 +10,14 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
-import { Button, Screen, State, SavedToast, C } from "../ui/components";
+import { Button, Screen, State, SavedToast, C, iconFont } from "../ui/components";
+import { useFonts } from "expo-font";
 import {hasPermission} from '../lib/permissions';
-function Navigation() {
+function Navigation({ iconsReady }: { iconsReady: boolean }) {
   const { session, loading, error, refresh } = useAuth();
-  if (loading)
+  // The icon font loads in parallel with the session check; waiting for it
+  // avoids a first screen whose icons are blank and then pop in.
+  if (loading || !iconsReady)
     return (
       <Screen title="Hungryman Work">
         <State loading />
@@ -71,12 +74,13 @@ function Navigation() {
   );
 }
 export default function RootLayout() {
+  const [iconsLoaded, iconsError] = useFonts(iconFont);
   return (
     <SafeAreaProvider>
       <KeyboardProvider><AppUpdatesProvider><AuthProvider>
         <StatusBar style="light" />
         <LocationLifecycle/>
-        <Navigation />
+        <Navigation iconsReady={iconsLoaded || !!iconsError} />
         <SavedToast/>
       </AuthProvider></AppUpdatesProvider></KeyboardProvider>
     </SafeAreaProvider>

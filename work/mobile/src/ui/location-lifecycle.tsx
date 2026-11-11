@@ -44,9 +44,11 @@ export function LocationLifecycle(){
   if(!id||!approved)return;
   let stopped=false;
   void SecureStore.getItemAsync(key).then(v=>{if(!stopped){setOpen(!v);setError('')}});
-  void sync();
+  // Let the first signed-in screen render and settle before GPS, reminder API
+  // and notification scheduling work starts competing for the JS thread.
+  const first=setTimeout(()=>{void sync()},2000);
   const timer=setInterval(()=>{void sync()},90000),listener=AppState.addEventListener('change',s=>{if(s==='active')void sync()});
-  return()=>{stopped=true;clearInterval(timer);listener.remove()};
+  return()=>{stopped=true;clearTimeout(first);clearInterval(timer);listener.remove()};
  },[id,approved,key,sync]);
  async function configure(){
   if(!id||busy)return;

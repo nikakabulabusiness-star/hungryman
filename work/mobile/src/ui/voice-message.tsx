@@ -9,7 +9,15 @@ import type {File} from 'expo-file-system';
 import {claimAudio,setRecording} from '../lib/audio-focus';
 import {Button,Icon,Sheet,S,C} from './components';
 const clock=(seconds:number)=>`${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,'0')}`;
+// A native audio player per visible voice bubble is expensive to create while a
+// conversation opens or scrolls. Render a static bubble and create the player
+// only when the user actually presses play.
 export const VoiceMessage=memo(function VoiceMessage({id,durationMs,source}:{id?:string;durationMs?:number|null;source?:AudioSource}){
+ const [active,setActive]=useState(!!source);
+ if(active)return <VoicePlayer id={id} durationMs={durationMs} source={source} autoPlay={!source}/>;
+ return <View style={{width:220,gap:6}}><View style={[S.row,{gap:10}]}><Pressable onPress={()=>setActive(true)} accessibilityLabel="ხმოვანი შეტყობინების მოსმენა" style={{padding:10,minWidth:44,minHeight:44}}><Icon name="play" color={C.text} size={23}/></Pressable><View style={{flex:1,gap:6}}><View style={{height:4,borderRadius:2,backgroundColor:'#ffffff40'}}/><Text style={{color:C.text,fontSize:11}}>{clock((durationMs||0)/1000)}</Text></View><Icon name="mic-outline" color={C.text} size={16}/></View></View>;
+});
+function VoicePlayer({id,durationMs,source,autoPlay}:{id?:string;durationMs?:number|null;source?:AudioSource;autoPlay:boolean}){
  const player=useAudioPlayer(null,{updateInterval:250}),status=useAudioPlayerStatus(player);
  const file=useRef<File|null>(null),loaded=useRef(false),release=useRef<(()=>void)|null>(null),operation=useRef<AbortController|null>(null),alive=useRef(true);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -36,9 +44,12 @@ export const VoiceMessage=memo(function VoiceMessage({id,durationMs,source}:{id?
   }catch(e){relinquish();if(operation.current===request)loaded.current=false;if(alive.current&&operation.current===request&&!request.signal.aborted)setError((e as Error).message||'ჩანაწერი ვერ ჩაიტვირთა. სცადე ხელახლა.')}
   finally{if(alive.current&&operation.current===request)setBusy(false)}
  }
+ const toggleRef=useRef(toggle);useEffect(()=>{toggleRef.current=toggle});
+ // Mounted by a tap on the static bubble: start playback right away.
+ useEffect(()=>{if(autoPlay)void toggleRef.current()},[autoPlay]);
  const total=status.duration||((durationMs||0)/1000),progress=total?Math.min(1,status.currentTime/total):0;
  return <View style={{width:220,gap:6}}><View style={[S.row,{gap:10}]}><Pressable onPress={()=>void toggle()} accessibilityLabel={busy?'ჩატვირთვის გაუქმება':status.playing?'პაუზა':'ხმოვანი შეტყობინების მოსმენა'} style={{padding:10,minWidth:44,minHeight:44}}>{busy?<ActivityIndicator color={C.text}/>:<Icon name={status.playing?'pause':error?'refresh':'play'} color={C.text} size={23}/>}</Pressable><View style={{flex:1,gap:6}}><View style={{height:4,borderRadius:2,backgroundColor:'#ffffff40',overflow:'hidden'}}><View style={{width:`${progress*100}%`,height:4,backgroundColor:C.text}}/></View><Text style={{color:C.text,fontSize:11}}>{clock(status.playing?status.currentTime:total)}</Text></View><Icon name="mic-outline" color={C.text} size={16}/></View>{!!error&&<Text accessibilityRole="alert" style={{color:C.text,fontSize:11}}>{error}</Text>}</View>
-});
+}
 type Draft={uri:string;id:string;durationMs:number};
 export function VoiceRecorder({conversationId,onClose,onSend}:{conversationId:string;onClose:()=>void;onSend:(id:string,durationMs:number)=>void}){
  const recorder=useAudioRecorder({...RecordingPresets.HIGH_QUALITY,numberOfChannels:1,bitRate:64000}),state=useAudioRecorderState(recorder,200),[draft,setDraft]=useState<Draft|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState(''),started=useRef(0),ending=useRef(false),alive=useRef(true);

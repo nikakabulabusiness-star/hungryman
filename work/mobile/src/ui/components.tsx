@@ -18,11 +18,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+// Import only the Ionicons family: the package index pulls in every icon
+// family's glyph map and bundles all 19 icon fonts as update assets.
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { isLoaded as fontIsLoaded } from "expo-font";
 import * as Haptics from "expo-haptics";
 import { avatarSource } from "../lib/api";
 import { C, S } from "./theme";
 export { C, S };
+export const ICON_FONT = Ionicons.getFontFamily();
+export const iconFont = Ionicons.font;
 export function Icon({
   name,
   size = 22,
@@ -32,6 +37,10 @@ export function Icon({
   size?: number;
   color?: React.ComponentProps<typeof Ionicons>["color"];
 }) {
+  // Until the icon font is registered, @expo/vector-icons renders an empty
+  // <Text/> with no size, which makes rows jump when icons pop in. Reserve the
+  // icon's box instead (the font is preloaded at startup, so this is rare).
+  if (!fontIsLoaded(ICON_FONT)) return <View style={{ width: size, height: size }} />;
   return <Ionicons name={name} size={size} color={color} />;
 }
 export function Screen({

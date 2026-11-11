@@ -4,14 +4,17 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {randomUUID} from 'expo-crypto';
 import {workLocalDateTime} from '../lib/work-editor';
+import {formatDate} from '../lib/dates';
 import {api, uploadWorkPhoto, workPhotoSource} from '../lib/api';
 import {Button, Field, Icon, Select, Sheet, Toggle} from './components';
 
 export const W={bg:'#0b131e',card:'#14222f',line:'#263747',text:'#eef3f8',muted:'#91a5b8',red:'#f6465a',blue:'#77a9ff',green:'#61d4aa',amber:'#efbc64',purple:'#ae8bfa'};
 export const WS=StyleSheet.create({card:{backgroundColor:W.card,borderRadius:14,borderWidth:1,borderColor:W.line,padding:14,gap:12},title:{fontSize:21,fontWeight:'700',color:W.text},heading:{fontSize:15,fontWeight:'700',color:W.text},text:{fontSize:13,lineHeight:20,color:W.text},muted:{fontSize:12,lineHeight:18,color:W.muted},row:{flexDirection:'row',alignItems:'center',gap:9},between:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:9},error:{fontSize:13,lineHeight:20,color:W.red}});
 export const workId=()=>randomUUID();
-export const money=(tetri:number)=>`${(tetri/100).toLocaleString('ka-GE',{minimumFractionDigits:2,maximumFractionDigits:2})} ₾`;
-export const stamp=(value:number)=>new Date(value).toLocaleString('ka-GE',{timeZone:'Asia/Tbilisi',dateStyle:'medium',timeStyle:'short'});
+let moneyFormat:Intl.NumberFormat|undefined;
+export const money=(tetri:number)=>`${(moneyFormat??=new Intl.NumberFormat('ka-GE',{minimumFractionDigits:2,maximumFractionDigits:2})).format(tetri/100)} ₾`;
+const STAMP={timeZone:'Asia/Tbilisi',dateStyle:'medium',timeStyle:'short'} as const;
+export const stamp=(value:number)=>formatDate(value,'ka-GE',STAMP);
 export function WorkFrame({title,children,right,onRefresh,refreshing=false,scroll=true,onBack}:{title:string;children:React.ReactNode;right?:React.ReactNode;onRefresh?:()=>void;refreshing?:boolean;scroll?:boolean;onBack?:()=>void}){
  return <SafeAreaView edges={['top','left','right','bottom']} style={{flex:1,backgroundColor:W.bg}}><View style={[WS.between,{paddingHorizontal:16,paddingTop:8,paddingBottom:14}]}><View style={[WS.row,{flex:1}]}><Pressable accessibilityRole="button" accessibilityLabel="უკან" onPress={onBack||(()=>router.canGoBack()?router.back():router.replace('/'))} style={{padding:8}}><Icon name="arrow-back" color={W.text}/></Pressable><View style={{flex:1,gap:2}}><Text style={{color:W.red,fontSize:10,fontWeight:'800',letterSpacing:1.3}}>HUNGRYMAN WORK</Text><Text numberOfLines={1} style={WS.heading}>{title}</Text></View></View>{right}</View><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>{scroll?<ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{padding:16,paddingTop:4,gap:14,paddingBottom:32}} refreshControl={onRefresh?<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={W.red}/>:undefined}>{children}</ScrollView>:children}</KeyboardAvoidingView></SafeAreaView>;
 }

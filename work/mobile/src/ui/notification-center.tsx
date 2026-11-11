@@ -7,7 +7,9 @@ import {useAuth} from '../lib/auth';
 import {useResource} from '../lib/use-resource';
 import {refreshResource,setResource} from '../lib/resource-cache';
 import type {Session} from '../lib/types';
+import {formatDate} from '../lib/dates';
 import {Button,Icon,Screen,State,S,C} from './components';
+const NOTICE_TIME={month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'} as const;
 export type NoticeCounts={disabled?:boolean;unread:number;requests:number;chatUnread:number};
 type Notice={id:string;category:string;title:string;body:string;target:string;target_id:string;important:number;created:number;read_at:number|null};
 type Notices={items:Notice[];next:{before:number;beforeId:string}|null}&NoticeCounts;
@@ -30,7 +32,7 @@ function BadgeButton({icon,label,count,onPress}:{icon:'notifications-outline'|'f
 const NoticeRow=memo(function NoticeRow({notice:n,onPress}:{notice:Notice;onPress:(n:Notice)=>void}){
  return <Pressable accessibilityRole="button" accessibilityLabel={(n.read_at?'':'წაუკითხავი · ')+n.title} onPress={()=>onPress(n)} style={{padding:13,borderRadius:17,backgroundColor:n.read_at?C.surface:C.raised,borderWidth:1,borderColor:n.read_at?'transparent':C.line,flexDirection:'row',gap:10}}>
   <View style={{paddingTop:2}}><Icon name={n.category==='shoot'?'videocam-outline':n.category==='salary'?'wallet-outline':n.category==='request'?'file-tray-outline':'notifications-outline'} size={19} color={n.important?C.red:C.blue}/></View>
-  <View style={{flex:1,gap:4}}><Text style={{color:C.text,fontSize:n.important?15:13,lineHeight:20,fontWeight:n.read_at?'500':'700'}}>{n.title}</Text><Text style={{color:C.muted,fontSize:12,lineHeight:18}} numberOfLines={3}>{n.body}</Text><Text style={{color:C.muted,fontSize:10}}>{new Date(n.created).toLocaleString('ka-GE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</Text></View>
+  <View style={{flex:1,gap:4}}><Text style={{color:C.text,fontSize:n.important?15:13,lineHeight:20,fontWeight:n.read_at?'500':'700'}}>{n.title}</Text><Text style={{color:C.muted,fontSize:12,lineHeight:18}} numberOfLines={3}>{n.body}</Text><Text style={{color:C.muted,fontSize:10}}>{formatDate(n.created,'ka-GE',NOTICE_TIME)}</Text></View>
   {!n.read_at&&<View style={{width:7,height:7,borderRadius:4,backgroundColor:C.red,marginTop:6}}/>}
  </Pressable>;
 });

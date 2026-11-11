@@ -36,5 +36,23 @@ export async function activateResourceCache(session:Session){
   if(!resourceEntry(e.path).data){entries.set(e.path,{data,error:'',loading:false,updated:e.updated,cached:true});emit(e.path)}
  }
 }
-export async function refreshResource(path:string){const current=resourceEntry(path);if(current.flight)return current.flight;const version=epoch;const task=(async()=>{try{const data=await api(path);if(epoch!==version)return;const next={data,error:'',loading:false,updated:Date.now(),cached:false};entries.set(path,next);emit(path);save(path,next)}catch(e){if(epoch!==version)return;if(e instanceof ApiError&&(e.status===401||e.status===403||(e.status===404&&!!snapshotKind(path)))){clearResources();entries.set(path,{...empty(),loading:false,error:e.message});emit(path);return}entries.set(path,{...current,error:(e as Error).message,loading:false,flight:undefined});emit(path)}})();current.flight=task;return task}
+// Polling usually returns exactly what is already displayed. Keeping the
+// previous object (and skipping the emit) stops every subscribed screen,
+// the tab bar and FlatList rows from re-rendering on each unchanged poll.
+const signatures=new WeakMap<object,string>();
+function signature(value:unknown){if(!value||typeof value!=='object')return JSON.stringify(value);let s=signatures.get(value);if(s===undefined){s=JSON.stringify(value);signatures.set(value,s)}return s}
+function keepLocalMessages(path:string,previous:unknown,data:unknown){
+ // A background refresh of a thread must not drop messages that are still sending or failed locally.
+ if(snapshotKind(path)!=='messages'||!previous||!data)return data;
+ const local=((previous as {messages?:{id:string;delivery?:string}[]}).messages||[]).filter(m=>m.delivery);if(!local.length)return data;
+ const next=data as {messages?:{id:string;created:number}[]},ids=new Set((next.messages||[]).map(m=>m.id)),keep=local.filter(m=>!ids.has(m.id));
+ return keep.length?{...next,messages:[...(next.messages||[]),...keep]}:data;
+}
+export async function refreshResource(path:string){const current=resourceEntry(path);if(current.flight)return current.flight;const version=epoch;const task=(async()=>{try{const fetched=await api(path);if(epoch!==version)return;const latest=resourceEntry(path),data=keepLocalMessages(path,latest.data,fetched);
+ if(latest.data&&data&&typeof data==='object'&&signature(data)===signature(latest.data)){if(!latest.loading&&!latest.cached&&!latest.error){latest.updated=Date.now();latest.flight=undefined;return}const next={data:latest.data,error:'',loading:false,updated:Date.now(),cached:false};entries.set(path,next);emit(path);save(path,next);return}
+ const next={data,error:'',loading:false,updated:Date.now(),cached:false};entries.set(path,next);emit(path);save(path,next)}catch(e){if(epoch!==version)return;if(e instanceof ApiError&&(e.status===401||e.status===403||(e.status===404&&!!snapshotKind(path)))){clearResources();entries.set(path,{...empty(),loading:false,error:e.message});emit(path);return}
+ // Use the latest entry: optimistic updates made while this request was in flight must survive a failure.
+ const latest=resourceEntry(path);entries.set(path,{...latest,error:(e as Error).message,loading:false,flight:undefined});emit(path)}})();current.flight=task;return task}
+/** Publish data fetched elsewhere (e.g. a shared poller) without re-rendering subscribers when nothing changed. */
+export function publishResource<T>(path:string,data:T){const latest=resourceEntry<T>(path);if(latest.data&&data&&typeof data==='object'&&signature(data)===signature(latest.data)&&!latest.loading&&!latest.cached&&!latest.error){latest.updated=Date.now();return}setResource<T>(path,data,{verified:true})}
 export function prefetchResource(path:string,maxAge=15_000){const e=resourceEntry(path);if(e.cached||Date.now()-e.updated>maxAge)return refreshResource(path);return Promise.resolve()}

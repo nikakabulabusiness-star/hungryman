@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -38,7 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       else clearResources();
       if(version!==epoch.current)return;
       setError("");
-      setSession(next);
+      // The session is re-verified every minute and on foreground. Keep the
+      // existing object when nothing changed so the whole navigation tree and
+      // every useAuth() consumer do not re-render on each check.
+      setSession(old=>old&&next&&JSON.stringify(old)===JSON.stringify(next)?old:next);
       if(next?.permissions?.isApprovedStaff){if(hasPermission(next.permissions,'shoots.view'))void prefetchResource('/api/shoots');if(hasPermission(next.permissions,'chat.view')){if(next.permissions.features?.teamChat!==false)void prefetchResource('/api/chat/messages');void prefetchResource('/api/chat/conversations')}if(hasPermission(next.permissions,'calendar.view')){const {from,to}=monthBounds(today().slice(0,7));void prefetchResource(`/api/calendar?from=${from}&to=${to}`)}}
     } catch (e) {
       if(version!==epoch.current)return;
@@ -77,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearInterval(timer);
     };
   }, [refresh]);
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const version=++epoch.current;
     clearResources();
     setSession(null);
@@ -90,8 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(result.token);
     if(version!==epoch.current)return;
     await refresh();
-  };
-  const logout = async () => {
+  }, [refresh]);
+  const logout = useCallback(async () => {
     // Invalidate visible/private data immediately, even if the network is offline.
     epoch.current++;
     clearResources();
@@ -105,12 +109,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ]);
     await setToken(null);
     await cleanup;
-  };
+  }, []);
+  const value = useMemo(() => ({ session, loading, error, refresh, login, logout }), [session, loading, error, refresh, login, logout]);
 
   return (
-    <Context.Provider
-      value={{ session, loading, error, refresh, login, logout }}
-    >
+    <Context.Provider value={value}>
       {children}
     </Context.Provider>
   );
