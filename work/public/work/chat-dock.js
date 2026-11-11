@@ -145,7 +145,8 @@
       // Looking at a list, a minimized panel, or a hidden tab does not mark a chat read.
       const active = !document.hidden ? fullPage() ? (document.documentElement.dataset.hmChatThread || null) : readingThread : null;
       for (const m of messages) if (m.conversationId !== active) unread.set(m.conversationId, (unread.get(m.conversationId) || 0) + 1);
-      if (Date.now() - checkedUnread > 15000) {
+      // The full /chat page hides this badge and refreshes its own directory.
+      if (!fullPage() && Date.now() - checkedUnread > 15000) {
         checkedUnread = Date.now();
         const response = await fetch('/api/chat/conversations', {cache:'no-store'});
         if (response.ok) { const data = await response.json(); unread.clear(); for (const c of data.conversations || []) if (c.unread > 0) unread.set(c.id, c.unread); updateBadge(); }

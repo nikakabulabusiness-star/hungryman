@@ -1,8 +1,9 @@
-import {roleLabel} from '@/lib/department-directory';
 /* eslint-disable react-hooks/set-state-in-effect -- form drafts intentionally hydrate from the selected server record. */
 'use client';
-
-import '@/app/team/cabinet-calendar.css';
+import {roleLabel} from '@/lib/department-directory';
+// cabinet-calendar.css is owned by cabinet-panel; a second direct importer makes
+// the bundler emit a CSS-only chunk that the asset manifest references but never ships (404).
+import '@/components/cabinet-panel';
 import {finishSave} from '@/lib/save-feedback';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {CalendarDays,ChevronDown,ChevronLeft,ChevronRight,Clock3,Pencil,RefreshCw,Trash2,UsersRound} from 'lucide-react';

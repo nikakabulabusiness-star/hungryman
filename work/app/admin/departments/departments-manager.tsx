@@ -1,12 +1,12 @@
 'use client';
-import Link from 'next/link';
+// Native anchor like the rest of the workspace: vinext's Link prefetch crashed here ("ee is not a function").
 import {ArrowUpRight,Layers3} from 'lucide-react';
 import {hierarchyInDepartment,roleLabel,type Department} from '@/lib/department-directory';
 import type {Position} from '@/lib/positions';
 import HierarchyBadge from '@/components/hierarchy-badge';
 type Person={userId:string|null;name:string;role:string};
 export default function DepartmentsManager({initialDepartments,positions,people,canManage}:{initialDepartments:Department[];positions:Position[];people:Person[];planned?:unknown[];canManage:boolean}){
- return <><div className="department-overview"><div><Layers3 size={19}/><span>6 დეპარტამენტი · ერთიანი გუნდი</span></div><p>ყველა დეპარტამენტის უმაღლესი თანამდებობა ექვემდებარება დამფუძნებელს. ერთ დონეზე მდგომი შტატები თანაბარ საფეხურზეა.</p>{canManage&&<Link href="/admin/positions">შტატებისა და უფლებების მართვა <ArrowUpRight size={16}/></Link>}</div><div className="department-grid">{initialDepartments.map(department=>{
+ return <><div className="department-overview"><div><Layers3 size={19}/><span>6 დეპარტამენტი · ერთიანი გუნდი</span></div><p>ყველა დეპარტამენტის უმაღლესი თანამდებობა ექვემდებარება დამფუძნებელს. ერთ დონეზე მდგომი შტატები თანაბარ საფეხურზეა.</p>{canManage&&<a href="/admin/positions">შტატებისა და უფლებების მართვა <ArrowUpRight size={16}/></a>}</div><div className="department-grid">{initialDepartments.map(department=>{
   const roles=hierarchyInDepartment(positions,department.id),maxLevel=Math.max(1,...roles.map(r=>r.displayLevel)),levels=[...new Set(roles.map(r=>r.displayLevel))];
   const memberCount=people.filter(p=>roles.some(r=>r.active&&r.name===p.role)).length;
   return <article className="department-card" key={department.id}><div className="department-title-row"><h2>{department.name}</h2><span>{roles.length} შტატი</span></div><p>{department.description}</p>

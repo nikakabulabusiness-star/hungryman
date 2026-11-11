@@ -3,7 +3,7 @@
  if(location.pathname.replace(/\/$/,'')==='/chat/embed'||window.__hmCallsLoaded)return;
  window.__hmCallsLoaded=true;
  const origin=location.origin,tab=crypto.randomUUID(),leaseKey='hmw-call-sound-owner';
- let user='',checked=0,active=null,incoming=null,busy=false,startSequence=0,polling=false,ringKind=null,frame=null,bootTimer=null,ringTimer=null,incomingTimer=null;
+ let user='',checked=0,deniedUntil=0,active=null,incoming=null,busy=false,startSequence=0,polling=false,ringKind=null,frame=null,bootTimer=null,ringTimer=null,incomingTimer=null;
  const dismissed=new Set(),sounds={incoming:new Audio('/work/call-incoming.wav'),outgoing:new Audio('/work/call-outgoing.wav')};
  Object.values(sounds).forEach(sound=>{sound.loop=true;sound.volume=.35});
  const root=document.createElement('div');root.className='hm-call-root';
@@ -66,10 +66,11 @@
  });
  $('[data-accept]').onclick=()=>{if(incoming)void open(incoming)};
  $('[data-decline]').onclick=()=>{if(!incoming)return;const id=incoming.id;dismissed.add(id);incoming=null;banner.hidden=true;ring(null);void request('/api/chat/calls','PATCH',{id,action:'declined'}).catch(e=>error(e.message))};
- async function poll(){
-  if(polling)return;polling=true;
+ async function poll(force=false){
+  // Signed-out or unauthorized pages back off instead of polling every 1.5s forever.
+  if(polling||!force&&!active&&Date.now()<deniedUntil)return;polling=true;
   try{
-   const data=await request('/api/chat/calls');
+   const data=await request('/api/chat/calls');deniedUntil=0;
    if(user&&data.userId&&user!==data.userId){clear();dismissed.clear()}user=data.userId||user;
    const prefs={mutedIds:data.mutedIds||[]};
    if(active||busy)return;
@@ -77,10 +78,10 @@
    clearTimeout(incomingTimer);
    banner.hidden=!incoming;
    if(incoming){const current=incoming;$('[data-name]').textContent=current.creatorName;$('[data-kind]').textContent=current.mode==='audio'?'შემომავალი აუდიოზარი':'შემომავალი ვიდეოზარი';ring(ownsSound()?'incoming':null);incomingTimer=setTimeout(()=>{if(incoming?.id===current.id){dismissed.add(current.id);incoming=null;banner.hidden=true;ring(null)}},Math.max(0,(current.ringUntil??current.created+30000)-Date.now()))}else ring(null);
-  }catch(e){if([401,403].includes(e.status)){clear();user='';checked=0}else if(!active){incoming=null;banner.hidden=true;ring(null)}}finally{polling=false}
+  }catch(e){if([401,403].includes(e.status)){clear();user='';checked=0;deniedUntil=Date.now()+30000}else if(!active){incoming=null;banner.hidden=true;ring(null)}}finally{polling=false}
  }
  window.addEventListener('pagehide',()=>{const old=active;clear();if(old)navigator.sendBeacon?.('/api/chat/calls/session',new Blob([JSON.stringify({id:old.call.id,sessionId:old.sessionId,action:'leave'})],{type:'application/json'}));try{const lease=JSON.parse(localStorage.getItem(leaseKey)||'null');if(lease?.tab===tab)localStorage.removeItem(leaseKey)}catch{}});
- window.addEventListener('hmw:chat-route',()=>void poll());
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)void poll()});
+ window.addEventListener('hmw:chat-route',()=>void poll(true));
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)void poll(true)});
  void poll();setInterval(()=>void poll(),1500);
 })();

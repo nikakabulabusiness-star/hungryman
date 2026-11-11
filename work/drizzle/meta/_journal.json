@@ -225,6 +225,13 @@
       "when": 1793053406700,
       "tag": "0031_nervous_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1794428461767,
+      "tag": "0032_staff_email_lookup_indexes",
+      "breakpoints": true
     }
   ]
 }

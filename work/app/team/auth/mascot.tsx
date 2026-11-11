@@ -50,7 +50,7 @@ export default function WorkMascot(){
 
  return <div className="work-entry-brand" aria-hidden="true">
   <svg ref={svgRef} className="work-mascot" viewBox="0 0 800 800" width="800" height="800" focusable="false">
-   <image href="/careers/hungryman-logo.png" width="800" height="800"/>
+   <image href="/careers/hungryman-logo.webp" width="800" height="800"/>
    {/* Cover only the original eyes; keep the face, brows and brand untouched. */}
    <path fill="#f5dcbe" d="M334 277h38v34h-38zM423 277h38v34h-38z"/>
    <g className="mascot-open-eyes">

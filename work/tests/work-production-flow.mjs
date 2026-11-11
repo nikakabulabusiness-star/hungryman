@@ -16,9 +16,9 @@ const people=[
 ].map(([userId,role])=>({userId,role,email:userId+'@example.test',fullName:'Name '+userId,hasAvatar:false,profileUpdated:0,lastSeen:0,isOwner:role==='Owner'||role==='Developer'}));
 let active;
 const modules=new Map();
-function load(file){
- if(modules.has(file))return modules.get(file);
- const exports={};modules.set(file,exports);
+function load(file,{key=file,source}={}){
+ if(modules.has(key))return modules.get(key);
+ const exports={};modules.set(key,exports);
  function require(name){
   if(name==='@/lib/storage')return {storage:()=>({DB,BUCKET:{get:async()=>({body:new Uint8Array([255,216,255,1])})}})};
   if(name==='@/lib/staff-access')return {getStaffAccess:async()=>active,listApprovedStaff:async()=>people};
@@ -27,10 +27,25 @@ function load(file){
   const base=name.startsWith('@/')?name.slice(2):path.posix.join(path.posix.dirname(file),name);
   return load(fs.existsSync(base+'.ts')?base+'.ts':base+'.tsx');
  }
- const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=ts.transpileModule(source??fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
  vm.runInNewContext(code,{exports,require,crypto,Date,JSON,Map,Set,Number,URL,Request,Response,Headers,Object,Array,Math,console,Intl,Uint8Array,btoa,atob,TextDecoder});return exports;
 }
-const permissionModule=load('lib/permissions.ts'),policy=load('lib/work-policy.ts'),store=load('lib/work-store.ts'),model=load('mobile/src/lib/work-model.ts'),validation=load('lib/work-validation.ts');
+// Product rule: the Work production board stays restricted to Developer Mode until Nika
+// opens it for the team. Check that gate on the real module first, then exercise the
+// role workflow against the same policy with only that one gate lifted, i.e. the
+// behaviour staff will get once Work is opened. Every other check stays in place.
+const permissionModule=load('lib/permissions.ts');
+const policySource=fs.readFileSync('lib/work-policy.ts','utf8'),DEVELOPER_GATE='||!actor.isDeveloper||';
+assert.equal(policySource.split(DEVELOPER_GATE).length,2,'getWorkContext must keep exactly one Developer Mode gate');
+const gatedPolicy=load('lib/work-policy.ts',{key:'gated:lib/work-policy.ts'});
+const gateActor=(role,extra={})=>({userId:'gate-'+role,email:'gate@example.test',fullName:'Gate',role,isApproved:true,isDeveloper:false,isOwner:role==='Owner',permissions:[...permissionModule.permissionKeys],features:{work:true,shoots:true},...extra});
+for(const role of ['Owner','HR','სცენარისტი','პროდიუსერი','Senior Editor','Video Editor','ტექნიკური დირექტორი','Content Creator'])await assert.rejects(gatedPolicy.getWorkContext(gateActor(role)),error=>error instanceof gatedPolicy.WorkError&&error.status===403,role+' must not open Work outside Developer Mode');
+await assert.rejects(gatedPolicy.getWorkContext(gateActor('Owner',{isDeveloper:false,isOwner:true})),error=>error.status===403,'a developer previewing Owner is not in Developer Mode');
+await assert.rejects(gatedPolicy.getWorkContext(gateActor('Developer',{isDeveloper:true,features:{work:false}})),error=>error.status===403,'removed Work module stays closed even in Developer Mode');
+await assert.rejects(gatedPolicy.getWorkContext(gateActor('Developer',{isDeveloper:true,isApproved:false})),error=>error.status===403);
+assert.ok((await gatedPolicy.getWorkContext(gateActor('Developer',{userId:'developer',isDeveloper:true}))).editBoards.length>0,'Developer Mode opens Work');
+console.log('PASS Work stays restricted to Developer Mode: staff roles and role previews receive 403.');
+const policy=load('lib/work-policy.ts',{source:policySource.replace(DEVELOPER_GATE,'||')}),store=load('lib/work-store.ts'),model=load('mobile/src/lib/work-model.ts'),validation=load('lib/work-validation.ts');
 function login(id,overrides={}){const p=people.find(p=>p.userId===id);active={userId:p.userId,email:p.email,fullName:p.fullName,role:p.role,isApproved:true,isDeveloper:p.role==='Developer',isOwner:p.role==='Owner'||p.role==='Developer',permissions:[...permissionModule.permissionKeys],features:{work:true,shoots:true},...overrides}}
 async function context(id,overrides){login(id,overrides);return policy.getWorkContext()}
 const rejects=async(promise,status)=>assert.rejects(promise,error=>error instanceof policy.WorkError&&error.status===status);

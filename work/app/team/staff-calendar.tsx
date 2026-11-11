@@ -1,7 +1,6 @@
 'use client';
 import {PrivateNote} from '@/components/cabinet-panel';
 import CalendarDayManager,{type CalendarPerson} from './calendar-day-manager';
-import './cabinet-calendar.css';
 import {CalendarCheck2,ChevronLeft,ChevronRight,Clock3,MapPin,ArrowUpRight,StickyNote,Settings2} from 'lucide-react';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';

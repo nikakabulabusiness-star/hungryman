@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {roleLabel} from '@/lib/department-directory';
-import './system.css';
+import SystemSection from './system-section';
 import {systemPermissionCatalog} from '@/lib/site-controls';
 type Row={user_id:string;email:string;full_name:string;position:string|null;status:string;systemRole:'Developer'|'Administrator'|null;created:number;last_seen:number};
 type Detail={account:Record<string,unknown>&{email:string;systemRole:Row['systemRole'];status:string};employee:Record<string,unknown>|null;attendance:Record<string,unknown>[];calendar:Record<string,unknown>[];requests:Record<string,unknown>[];patterns:Record<string,unknown>[];leave:Record<string,unknown>[];daysOff:Record<string,unknown>[];sessions:Record<string,unknown>[];devices:Record<string,unknown>;activity:Record<string,unknown>[]};
@@ -22,7 +22,7 @@ export default function SystemConsole(){
  setBusy(true);setDetailError('');
  try{const r=await fetch(kind==='rights'?'/api/developer/administrators':kind==='delete'?'/api/admin/users':'/api/admin/account-status',{method:kind==='delete'?'DELETE':'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(kind==='rights'?{email:detail.account.email,administrator:true,permissions:rights}:kind==='delete'?{email:detail.account.email,confirmation:detail.account.email}:{email:detail.account.email,status:detail.account.status==='approved'?'suspended':'approved'})});const d=await r.json() as {error?:string};if(!r.ok)throw Error(d.error||'ცვლილება ვერ შეინახა.');setMessage(kind==='delete'?'ანგარიში წაიშალა.':'ცვლილება შენახულია.');if(kind==='delete')setSelected(null);setRevision(n=>n+1)}catch(e){setDetailError(e instanceof Error?e.message:'შეცდომა')}finally{setBusy(false)}
  }
- return <section className="system-console"><div className="system-title"><div><span className="eyebrow">მხოლოდ დეველოპერი</span><h1>ადმინისტრაციის მართვა</h1><p>ანგარიშების ბაზა და სისტემური უფლებები — თანამდებობებისგან დამოუკიდებლად.</p></div><a href="/admin/access">თანამშრომლის დამტკიცება ↗</a></div>
+ return <SystemSection><div className="system-title"><div><span className="eyebrow">მხოლოდ დეველოპერი</span><h1>ადმინისტრაციის მართვა</h1><p>ანგარიშების ბაზა და სისტემური უფლებები — თანამდებობებისგან დამოუკიდებლად.</p></div><a href="/admin/access">თანამშრომლის დამტკიცება ↗</a></div>
  <div className="system-toolbar"><input aria-label="ანგარიშის ძებნა" placeholder="სახელი ან ელფოსტა…" value={q} onChange={e=>{setQ(e.target.value);setPage(0)}}/><select aria-label="ანგარიშების ფილტრი" value={filter} onChange={e=>{setFilter(e.target.value);setPage(0)}}><option value="all">ყველა ანგარიში</option><option value="administrators">საიტის ადმინისტრაცია</option><option value="pending">დადასტურების მოლოდინში</option></select><small>{total} ანგარიში</small><button onClick={()=>setRevision(n=>n+1)}>განახლება</button></div>
  {message&&<p role="status" className="system-success">{message}</p>}{error&&<p role="alert" className="system-error">{error} <button onClick={()=>setRevision(n=>n+1)}>ხელახლა ცდა</button></p>}
  <div className="system-grid"><aside className="system-list" aria-busy={loading}>{loading&&<p role="status">იტვირთება…</p>}{!loading&&!rows.length&&!error&&<p>ანგარიში ვერ მოიძებნა.</p>}{rows.map(row=><button className={selected===row.user_id?'selected':''} key={row.user_id} onClick={()=>{setSelected(row.user_id);setTab('profile');setMessage('')}}><strong>{row.full_name||row.email}</strong><span>{row.email}</span><small>{row.position?roleLabel(row.position):'თანამდებობის გარეშე'} · {words[row.status]||row.status}</small>{row.systemRole&&<em>{words[row.systemRole]}</em>}</button>)}<div className="system-pagination"><button disabled={!page||loading} onClick={()=>setPage(p=>p-1)}>←</button><span>{page+1} / {Math.max(1,Math.ceil(total/30))}</span><button disabled={(page+1)*30>=total||loading} onClick={()=>setPage(p=>p+1)}>→</button></div></aside>
@@ -35,5 +35,5 @@ export default function SystemConsole(){
  {tab==='work'&&<><Records title="დასწრება" rows={detail.attendance}/><Records title="კალენდარი" rows={detail.calendar}/><Records title="მოთხოვნები" rows={detail.requests}/><Records title="სამუშაო განრიგები" rows={detail.patterns}/><Records title="შვებულების ლიმიტები" rows={detail.leave}/><Records title="დეი ოფის ლიმიტები" rows={detail.daysOff}/></>}
  {tab==='activity'&&<Records title="ანგარიშთან დაკავშირებული მოქმედებები" rows={detail.activity}/>}
  {tab==='technical'&&<><Records title="აქტიური სესიები" rows={detail.sessions}/><Records title="შეტყობინებების მოწყობილობები" rows={[detail.devices]}/><p className="system-muted">პაროლები, სესიის გასაღებები და მოწყობილობის ტოკენები დაცულია და არ გამოიგზავნება.</p></>}
- </>}</article></div></section>
+ </>}</article></div></SystemSection>
 }

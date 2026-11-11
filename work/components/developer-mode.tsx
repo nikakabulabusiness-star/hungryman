@@ -2,15 +2,16 @@
 import {Code2} from 'lucide-react';
 import {useEffect,useState} from 'react';
 
-export default function DeveloperMode(){
- const [active,setActive]=useState<boolean|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+export default function DeveloperMode({initialActive}:{initialActive?:boolean}={}){
+ const [active,setActive]=useState<boolean|null>(initialActive??null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  useEffect(()=>{
+  if(initialActive!==undefined)return;
   const controller=new AbortController();
   fetch('/api/developer/mode',{cache:'no-store',signal:controller.signal}).then(async response=>{
    if(response.ok)setActive((await response.json() as {previewRole:string|null}).previewRole===null);
   }).catch(()=>{});
   return ()=>controller.abort();
- },[]);
+ },[initialActive]);
  if(active===null)return null;
  async function toggle(){
   setBusy(true);setError('');

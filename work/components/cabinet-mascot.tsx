@@ -6,7 +6,7 @@ import './cabinet-mascot.css';
 
 type Pose='idle'|'walk'|'sit'|'shawarma'|'chips'|'jump'|'climb'|'hang'|'held'|'fall'|'land';
 type Point={x:number;y:number};
-const ART='/work/mascot/hungryman-full.png';
+const ART='/work/mascot/hungryman-full.webp';
 const HEAD='M276 0H720V194H676V480L574 516L489 536L380 499L294 470Z';
 
 /** A small, local-only desktop companion. No data, credentials or pointer positions leave the page. */

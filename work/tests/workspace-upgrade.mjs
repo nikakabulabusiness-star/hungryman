@@ -40,7 +40,7 @@ req('/api/mobile/me',{token:dev.token});let session=await(await me.GET()).json()
 for(const role of ['HR','Owner','Video Editor','სცენარისტი']){req('/api/mobile/me',{token:dev.token,headers:{'X-HMW-Preview-Role':encodeURIComponent(role)}});session=await(await me.GET()).json();assert.equal(session.user.role,role);assert.equal(session.permissions.canGrantOwner,false);assert.equal(session.developer.available,true);assert.equal(session.permissions.canAccessAdmin,['HR','Owner'].includes(role))}
 req('/api/mobile/me',{token:editor.token,headers:{'X-HMW-Preview-Role':'Developer'}});assert.equal((await(await me.GET()).json()).permissions.canAccessAdmin,false);assert.equal((await mode.GET()).status,403);
 assert.equal((await mode.POST(req('/api/developer/mode',{method:'POST',token:editor.token,body:{role:'Developer'}}))).status,403);
-let r=await mode.POST(req('/api/developer/mode',{method:'POST',token:dev.token,body:{role:'Video Editor'}}));assert.equal(r.status,200);assert.match(r.headers.get('Set-Cookie'),/HttpOnly/);
+let r=await mode.POST(req('/api/developer/mode',{method:'POST',token:dev.token,body:{role:'Video Editor'}}));assert.equal(r.status,200);assert.equal(r.headers.get('Set-Cookie'),null,'native preview travels in X-HMW-Preview-Role; only the web Developer/Senior Editor switch uses the HttpOnly cookie');
 const input={email:other.email,role:'Owner',status:'approved',canCreateShoots:true,canEditShoots:true};
 assert.equal((await admin.PATCH(req('/api/admin/users',{method:'PATCH',token:hr.token,body:input}))).status,403);
 assert.equal((await admin.PATCH(req('/api/admin/users',{method:'PATCH',token:dev.token,body:input}))).status,200);

@@ -75,6 +75,7 @@ const shellRequire=name=>{
  if(name==='@/lib/work-data-cache')return {setWorkDataAccount:id=>accountChanges.push(id)};
  if(name==='./work-notifications')return {NotificationButtons:'NotificationButtons',useNotificationCounts:enabled=>{countSubscriptions.push(enabled);return enabled?sharedCounts:{unread:0,requests:0,chatUnread:0}}};
  if(name==='@/app/team/logout-button')return {default:'LogoutButton'};
+ if(name==='@/components/locked-work-button')return {default:'LockedWorkButton'};
  if(name.endsWith('.css'))return {};
  throw Error('Unexpected shell dependency '+name);
 };

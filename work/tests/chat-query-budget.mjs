@@ -9,7 +9,7 @@ sql.exec('CREATE TABLE chat_deleted_conversations(id TEXT);CREATE TABLE chat_thr
 sql.exec("INSERT INTO chat_threads VALUES('private','alice','bob');INSERT INTO chat_group_members VALUES('group','alice');");
 let reads=0;
 const DB={prepare:q=>({bind(...args){return {first:async()=>{reads++;return sql.prepare(q).get(...args)||null}}}})};
-const chat=load('lib/chat.ts',{'./chat-lifecycle':{},'./staff-access':{},'./storage':{storage:()=>({DB})},'./permissions':{hasPermission:a=>a.permissions.includes('chat.view')}});
+const chat=load('lib/chat.ts',{'./site-controls':{publicRole:role=>role,threadEnabled:()=>true},'./chat-lifecycle':{},'./staff-access':{},'./storage':{storage:()=>({DB})},'./permissions':{hasPermission:a=>a.permissions.includes('chat.view')}});
 const approved={userId:'alice',isApproved:true,permissions:['chat.view']};
 for(const [thread,allowed] of [['team',true],['private',true],['group',true],['missing',false]]){reads=0;assert.equal(await chat.threadAllowed(thread,approved),allowed);assert.equal(reads,1,'membership/tombstone must use one statement')}
 assert.equal(await chat.threadAllowed('private',{...approved,userId:'outsider'}),false);
@@ -18,7 +18,7 @@ assert.equal(await chat.threadAllowed('private',approved),false);assert.equal(aw
 reads=0;assert.equal(await chat.threadAllowed('group',{...approved,isApproved:false}),false);assert.equal(reads,0);
 // Independent profile reads must start while fresh authorization is still pending.
 let resolvePermissions,profileReads=0,permissionReads=0;
-const accessModule=load('lib/staff-access.ts',{'@/app/chatgpt-auth':{},'@/lib/admin':{getAdminAccess:()=>{permissionReads++;return new Promise(r=>resolvePermissions=r)},OWNER_EMAIL:'owner'},'@/lib/staff-auth':{},'@/lib/storage':{storage:()=>({DB:{prepare:q=>({bind:()=>({first:async()=>{profileReads++;return q.includes('team_members')?{full_name:'Alice',last_seen:1}:null}})})}})},'next/navigation':{}});
+const accessModule=load('lib/staff-access.ts',{'./site-controls':{parseSystemPermissions:()=>[]},'@/app/chatgpt-auth':{},'@/lib/admin':{getAdminAccess:()=>{permissionReads++;return new Promise(r=>resolvePermissions=r)},OWNER_EMAIL:'owner'},'@/lib/staff-auth':{},'@/lib/storage':{storage:()=>({DB:{prepare:q=>({bind:()=>({first:async()=>{profileReads++;return q.includes('team_members')?{full_name:'Alice',last_seen:1}:null}})})}})},'next/navigation':{}});
 const work=accessModule.getStaffAccess({userId:'alice',email:'alice@example.test',fullName:'Alice'});
 await Promise.resolve();assert.equal(profileReads,2);assert.equal(permissionReads,1);
 resolvePermissions({role:'Editor',status:'approved',isApprovedStaff:true,permissions:['chat.view']});assert.equal((await work).isApproved,true);

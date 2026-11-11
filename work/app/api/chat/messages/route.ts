@@ -10,8 +10,10 @@ export const dynamic='force-dynamic';
 export async function GET(req:Request){
  const access=await getStaffAccess(),url=new URL(req.url),thread=url.searchParams.get('conversationId')||'team';
  if(!access?.isApproved||!hasPermission(access,'chat.view'))return Response.json({error:'ჩატი მხოლოდ თანამშრომლებისთვისაა.'},{status:403});
+ // historyStart is a read-only lookup; start it with the membership check to save a D1 round trip.
+ const cutoffRequest=historyStart(thread,access.userId);cutoffRequest.catch(()=>{});
  if(!await threadAllowed(thread,access))return Response.json({error:'ჩატი ვერ მოიძებნა.'},{status:404});
- try{const db=storage().DB;let cutoff=await historyStart(thread,access.userId);const after=Number(url.searchParams.get('afterCreated')||0),afterId=url.searchParams.get('afterId')||'',before=Number(url.searchParams.get('beforeCreated')||0),beforeId=url.searchParams.get('beforeId')||'',hasCursor=Number.isSafeInteger(after)&&after>0&&!!afterId,older=Number.isSafeInteger(before)&&before>0&&!!beforeId;
+ try{const db=storage().DB;let cutoff=await cutoffRequest;const after=Number(url.searchParams.get('afterCreated')||0),afterId=url.searchParams.get('afterId')||'',before=Number(url.searchParams.get('beforeCreated')||0),beforeId=url.searchParams.get('beforeId')||'',hasCursor=Number.isSafeInteger(after)&&after>0&&!!afterId,older=Number.isSafeInteger(before)&&before>0&&!!beforeId;
  // Existing web clients use long-polling; mobile threads use short incremental requests.
  if(hasCursor&&url.searchParams.get('wait')==='1'){
   const revision=url.searchParams.get('revision')||'',until=Date.now()+10000;
@@ -27,13 +29,17 @@ export async function GET(req:Request){
   cutoff=await historyStart(thread,access.userId);
  }
  const query=hasCursor?db.prepare(`SELECT ${CHAT_COLUMNS} FROM staff_chat_messages WHERE conversation_id=? AND created>? AND (created>? OR (created=? AND id>?)) ORDER BY created,id LIMIT 100`).bind(thread,cutoff,after,after,afterId):older?db.prepare(`SELECT ${CHAT_COLUMNS} FROM staff_chat_messages WHERE conversation_id=? AND created>? AND (created<? OR (created=? AND id<?)) ORDER BY created DESC,id DESC LIMIT 50`).bind(thread,cutoff,before,before,beforeId):db.prepare(`SELECT ${CHAT_COLUMNS} FROM staff_chat_messages WHERE conversation_id=? AND created>? ORDER BY created DESC,id DESC LIMIT 50`).bind(thread,cutoff);
+ const scopeRequest=hasCursor?db.prepare('SELECT id FROM staff_chat_messages WHERE conversation_id=? AND created>? ORDER BY created DESC,id DESC LIMIT 150').bind(thread,cutoff).all<{id:string}>():null;scopeRequest?.catch(()=>{});
  const [recent,pins,state,activity]=await Promise.all([query.all<ChatRow>(),db.prepare(`SELECT ${CHAT_COLUMNS} FROM staff_chat_messages WHERE conversation_id=? AND created>? AND pinned=1 ORDER BY pinned_at DESC LIMIT 50`).bind(thread,cutoff).all<ChatRow>(),db.prepare('SELECT value FROM workspace_settings WHERE key=?').bind(revisionKey(thread)).first<{value:string}>(),db.prepare('SELECT r.user_id,r.last_read,r.typing_until,t.full_name FROM chat_reads r LEFT JOIN team_members t ON t.user_id=r.user_id WHERE r.conversation_id=? AND r.user_id<>?').bind(thread,access.userId).all<{user_id:string;last_read:number;typing_until:number;full_name:string}>()]);
  const messages=(hasCursor?recent.results:[...recent.results].reverse()).map(publicMessage),pinned=pins.results.map(publicMessage);
- const scope=hasCursor?(await db.prepare('SELECT id FROM staff_chat_messages WHERE conversation_id=? AND created>? ORDER BY created DESC,id DESC LIMIT 150').bind(thread,cutoff).all<{id:string}>()).results.map(r=>r.id):messages.map(r=>r.id),ids=[...new Set([...scope,...pinned.map(m=>m.id)])];
+ const scope=hasCursor?(await scopeRequest!).results.map(r=>r.id):messages.map(r=>r.id),ids=[...new Set([...scope,...pinned.map(m=>m.id)])];
  const chunks=<T,>(values:T[])=>Array.from({length:Math.ceil(values.length/80)},(_,i)=>values.slice(i*80,(i+1)*80));
- const reactions=(await Promise.all(chunks(ids).map(async part=>(await db.prepare(`SELECT message_id,emoji,COUNT(*) AS count,MAX(CASE WHEN user_id=? THEN 1 ELSE 0 END) AS mine FROM chat_reactions WHERE message_id IN (${part.map(()=>'?').join(',')}) GROUP BY message_id,emoji`).bind(access.userId,...part).all<{message_id:string;emoji:string;count:number;mine:number}>()).results))).flat();
  const replyIds=[...new Set([...recent.results,...pins.results].map(r=>r.reply_to).filter(Boolean))];
- const replies=(await Promise.all(chunks(replyIds).map(async part=>(await db.prepare(`SELECT id,body,author_name,kind FROM staff_chat_messages WHERE conversation_id=? AND created>? AND id IN (${part.map(()=>'?').join(',')})`).bind(thread,cutoff,...part).all<{id:string;body:string;author_name:string;kind:string}>()).results))).flat();
+ // Reactions and reply previews are independent reads; run them concurrently.
+ const [reactions,replies]=await Promise.all([
+  Promise.all(chunks(ids).map(async part=>(await db.prepare(`SELECT message_id,emoji,COUNT(*) AS count,MAX(CASE WHEN user_id=? THEN 1 ELSE 0 END) AS mine FROM chat_reactions WHERE message_id IN (${part.map(()=>'?').join(',')}) GROUP BY message_id,emoji`).bind(access.userId,...part).all<{message_id:string;emoji:string;count:number;mine:number}>()).results)).then(rows=>rows.flat()),
+  Promise.all(chunks(replyIds).map(async part=>(await db.prepare(`SELECT id,body,author_name,kind FROM staff_chat_messages WHERE conversation_id=? AND created>? AND id IN (${part.map(()=>'?').join(',')})`).bind(thread,cutoff,...part).all<{id:string;body:string;author_name:string;kind:string}>()).results)).then(rows=>rows.flat()),
+ ]);
  const decorate=(m:ReturnType<typeof publicMessage>)=>({...m,reply:replies.find(r=>r.id===m.replyTo)?{id:m.replyTo,body:replies.find(r=>r.id===m.replyTo)!.body,authorName:replies.find(r=>r.id===m.replyTo)!.author_name,kind:replies.find(r=>r.id===m.replyTo)!.kind}:null,reactions:reactions.filter(r=>r.message_id===m.id).map(r=>({emoji:r.emoji,count:r.count,mine:!!r.mine}))});
  return Response.json({historyStart:cutoff,messages:messages.map(decorate),pinned:pinned.map(decorate),revision:state?.value||'',reactionScope:ids,reactionState:reactions,activity:activity.results,hasMore:!hasCursor&&recent.results.length===50},{headers:{'Cache-Control':'private, no-store'}});
  }catch{return Response.json({error:'ჩატი დროებით მიუწვდომელია.'},{status:503})}

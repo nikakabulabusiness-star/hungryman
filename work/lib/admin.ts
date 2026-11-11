@@ -48,9 +48,11 @@ export async function getAdminAccess(identity?:SessionUser|null):Promise<AdminAc
   const features=await getSiteFeatures();return {...rolePermissions(email,'Developer',true),features,canCreateShoots:features.shoots,canEditShoots:features.shoots};
  }
  try{
+  // Feature switches do not depend on the account row: read them concurrently so every
+  // authenticated request waits for two D1 round trips here instead of three.
+  const featuresRequest=getSiteFeatures();featuresRequest.catch(()=>{});
   const row=await storage().DB.prepare('SELECT a.role,a.status,EXISTS(SELECT 1 FROM site_administrators s WHERE s.email=a.email) AS site_admin,(SELECT permissions_json FROM site_administrators s WHERE s.email=a.email) AS system_permissions FROM admin_users a WHERE a.email=? LIMIT 1').bind(email).first<{role:string;status:TeamStatus;site_admin:number;system_permissions:string|null}>();
-  const position=row?.role?await getPosition(row.role):null;
-  const features=await getSiteFeatures();
+  const [position,features]=await Promise.all([row?.role?getPosition(row.role):null,featuresRequest]);
   const approved=row?.status==='approved'&&(!!row.site_admin||!!position?.active);
   return {...rolePermissions(email,row?.role||null,approved,false,false,position?.permissions||[],!!row?.site_admin,parseSystemPermissions(row?.system_permissions)),features,canCreateShoots:approved&&features.shoots&&hasPermission(rolePermissions(email,row?.role||null,approved,false,false,position?.permissions||[],!!row?.site_admin,parseSystemPermissions(row?.system_permissions)),'shoots.create'),canEditShoots:approved&&features.shoots&&hasPermission(rolePermissions(email,row?.role||null,approved,false,false,position?.permissions||[],!!row?.site_admin,parseSystemPermissions(row?.system_permissions)),'shoots.edit'),status:row?.status==='approved'&&!approved?'suspended':row?.status||null};
  }catch{return rolePermissions(email,null,false)}
